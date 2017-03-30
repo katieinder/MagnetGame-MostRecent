@@ -32,8 +32,8 @@ YELLOW = [255,255,0]
 ORANGE = [230,126,32]
 RED = [255,0,0]
 
-q = 1e4
-q1=300
+q = 1e2
+q1=10
 d=50
 k = 1
 m = 1
@@ -57,7 +57,7 @@ class Ball(pygame.sprite.Sprite):
         self.rect.y = 0
         self.x_direction = 1
         self.y_direction = 1
-        self.centreX = (self.rect.x + (self.rect.x + BALL_SIZE[0])) / 2.
+        self.centreX = (self.rect.x + (self.rect.x + BALL_SIZE[1])) / 2.
         self.centreY = (self.rect.y + (self.rect.y + BALL_SIZE[1])) / 2.
 
     def render(self, surface):
@@ -70,11 +70,13 @@ class Ball(pygame.sprite.Sprite):
 
     def accel(self, sprite_list, q, d, m):
         for magnet in sprite_list:
-            self.centreX = (self.rect.x + (self.rect.x + BALL_SIZE[0])) / 2.
+            self.centreX = (self.rect.x + (self.rect.x + BALL_SIZE[1])) / 2.
             self.centreY = (self.rect.y + (self.rect.y + BALL_SIZE[1])) / 2.
-            z = np.sqrt(abs(self.centreX - magnet.centreX)**2 + (self.centreY - magnet.centreY)**2) #use pythag
-            z = max(25, min(z, 350))
-            E = (q * d) / (2 * pi * ep0 * (z ** 3))  # E field
+            r_plus = np.sqrt(abs(self.centreX - magnet.rect.x)**2 + (self.centreY - magnet.centreY)**2) #use pythag
+            r_plus = max(0, min(r_plus, 350))
+            r_minus= np.sqrt(abs(self.centreX - (magnet.rect.x + MAGNET_SIZE[0]))**2 + (self.centreY - magnet.centreY)**2) #use pythag
+            r_minus = max(0, min(r_minus,400 ))
+            E = ((q*d)*(r_minus-r_plus)/ (4. * pi * ep0 * r_minus * r_plus ))  # E field
             a =   q1 * E / m
             #a = max(0, min(a,5))
             self.rect.x += a*self.x_direction
@@ -92,21 +94,22 @@ class Ball(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self,sprite_list,False):
             self.x_direction *= -1
             self.y_direction *= -1
+
     def bounce(self):
-        if self.rect.x > screensize[0] - objectsize[0]:
-            self.rect.x = 2*(screensize[0] - objectsize[0]) - self.rect.x
+        if self.rect.x > screen_size[0] - BALL_SIZE[0]:
+            self.rect.x = 2*(screen_size[0] - BALL_SIZE[0]) - self.rect.x
             self.x_direction *= -1
 
-        elif self.rect.x < objectsize[0]:
+        elif self.rect.x < BALL_SIZE[0]:
             self.rect.x = self.rect.x
             self.x_direction *= -1
 
-        if self.rect.y > screensize[1] - objectsize[1]:
-            self.rect.y = 2*(screensize[1] - objectsize[1]) - self.rect.y
+        if self.rect.y > screen_size[1] - BALL_SIZE[1]:
+            self.rect.y = 2*(screen_size[1] - BALL_SIZE[1]) - self.rect.y
             self.y_direction *= -1
 
-        elif self.rect.y < objectsize[1]:
-            self.rect.y = 2*objectsize[1] - self.rect.y
+        elif self.rect.y < BALL_SIZE[1]:
+            self.rect.y = 2*BALL_SIZE[1] - self.rect.y
             self.y_direction *= -1
 
 
@@ -119,7 +122,6 @@ class Magnet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = xpos
         self.rect.y = ypos
-        self.centreX = (self.rect.x + (self.rect.x + MAGNET_SIZE[0])) / 2
         self.centreY = (self.rect.y + (self.rect.y + MAGNET_SIZE[1])) / 2
 
     def handle_keys(self):
